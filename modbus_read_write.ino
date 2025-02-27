@@ -11,10 +11,11 @@
 #define Output_Power 0x3006
 
 #define MODBUS_REGISTER_COUNT 10
-#define MODBUS_BAUD_RATE 19200
+#define MODBUS_BAUD_RATE 38400
 #define RS485_TX_PIN 17
 #define RS485_RX_PIN 16
 #define RS485_DE_RE_PIN 4
+
 
 HardwareSerial RS485Serial(1);
 uint16_t registers[MODBUS_REGISTER_COUNT];
@@ -171,47 +172,64 @@ void setup() {
   writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 0x05);  // Command to stop
   // writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, 5000); // Writing frequency to 2000 register address  5000 = 25 x 200 = 25Hz
   writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, freq * 200);  // Writing frequency to 2000 register address  5000 = 25 x 200 = 25Hz
+
+
+  delay(1000);
 }
 bool vfd_on = false;
 void loop() {
-  delay(2000);
+  delay(10);
   // writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 1);  // Command to run
   // delay(2000);
 
-if(vfd_on == false){
-  if (freq < 30) {
-    freq += 5;
-    writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, freq * 200);  // Writing frequency to 2000 register address  5000 = 25 x 200 = 25Hz
-    if (freq > 25) {
-      writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 1);  // Command to run
-      vfd_on = true;
-      delay(8000);
+  if (vfd_on == false) {
+    if (freq < 30) {
+      freq += 5;
+      writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, freq * 200);  // Writing frequency to 2000 register address  5000 = 25 x 200 = 25Hz
+      Serial.println("Frequency Written--------------------------------");
+
+      if (freq > 25) {
+        // writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 1);  // Command to run
+        // Serial.println("VFD Start-----------------------------------------------------");
+        vfd_on = true;
+        delay(1000);
+      }
+    } else {
+      // freq = 5;
+      // writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, freq*200); // Writing frequency to 2000 register address  5000 = 25 x 200 = 25Hz
+      if (freq == 30) {
+        // writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, 5);
+        // writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 5);  // Command to stop
+        // freq = 35;
+      }
     }
   } else {
-    // freq = 5;
-    // writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, freq*200); // Writing frequency to 2000 register address  5000 = 25 x 200 = 25Hz
-    if (freq == 30) {
-      // writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, 5);
-      // writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 5);  // Command to stop
-      // freq = 35;
+    if (freq >= 10 && freq != 0) {
+      freq -= 5;
+      writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, freq * 200);  // Writing frequency to 2000 register address  5000 = 25 x 200 = 25Hz
+      Serial.println("Frequency Written-------------------------------------");
+      // if (freq <= 0) {
+      //   writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 5);  // Command to stop
+      //   vfd_on = false;
+      //   // delay(8000);
+      // }
     }
-  }}
-  else{
-    if (freq >= 0 && freq != 0) {
-    freq -= 5;
-    writeSingleRegister(MODBUS_SLAVE_ID, 0x2000, freq * 200);  // Writing frequency to 2000 register address  5000 = 25 x 200 = 25Hz
-    if (freq <= 0) {
-      writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 5);  // Command to run
-      vfd_on = false;
-      delay(8000);
-    }
-  } 
   }
   // Read the output frequency
-  if (readHoldingRegisters(MODBUS_SLAVE_ID, Output_Frequency, 1, registers)) {
+  if (readHoldingRegisters(MODBUS_SLAVE_ID, 0x1000, 1, registers)) {
     for (int i = 0; i < MODBUS_REGISTER_COUNT; i++) {
       Serial.print("Register ");
-      Serial.print(Output_Voltage + i);
+      Serial.print(0x1000 + i);
+      Serial.print(": ");
+      Serial.println(registers[i]);
+    }
+  } else {
+    Serial.println("Failed to read registers");
+  }
+  if (readHoldingRegisters(MODBUS_SLAVE_ID, 0x3000, 1, registers)) {
+    for (int i = 0; i < MODBUS_REGISTER_COUNT; i++) {
+      Serial.print("Register ===  ");
+      Serial.print(0x3000 + i);
       Serial.print(": ");
       Serial.println(registers[i]);
     }
@@ -220,6 +238,6 @@ if(vfd_on == false){
   }
   // delay(2000);
   // writeSingleRegister(MODBUS_SLAVE_ID, 0x1000, 0x05);  // Command to stop
-  // delay(1000);
-  delay(2000);
+  delay(1000);
+  // delay(2000);
 }
